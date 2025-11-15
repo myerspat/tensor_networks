@@ -6,7 +6,8 @@ import numpy as np
 
 from pytens.algs import TensorNetwork
 from pytens.search.configuration import SearchConfig
-from pytens.search.exhaustive import DFSSearch, BFSSearch
+from pytens.search.exhaustive import BFSSearch, DFSSearch
+from pytens.search.mc_search import MCTSearch
 from pytens.search.partition import PartitionSearch
 from pytens.search.utils import approx_error
 
@@ -64,3 +65,11 @@ class SearchEngine:
         search_stats["reconstruction_error"] = err
 
         return search_stats
+
+    def mcts(self, net: TensorNetwork, num_samples: int):
+        """Perform Monte Carlo Tree Search."""
+        engine = MCTSearch(self.config)
+        stats = engine.search(net, num_samples)
+
+        # clear up the temporary storage
+        return stats

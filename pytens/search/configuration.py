@@ -1,6 +1,6 @@
 """Configuration fields for the structure search process."""
 
-from typing import Literal, Optional
+from typing import Callable, Literal, Optional
 
 import pydantic
 
@@ -92,6 +92,47 @@ class SearchEngineConfig(pydantic.BaseModel):
         default=False,
         description="Enable verbose logging for intermediate search steps",
     )
+
+    # Monte Carlo Tree Search parameters
+    policy: str = pydantic.Field(
+        default="UCB1",
+        description="Selection and backpropogation policy",
+    )
+    rollout_max_ops: int = pydantic.Field(
+        default=0,
+        description="Maximum number of splits at rollout",
+    )
+    rollout_rand_max_ops: bool = pydantic.Field(
+        default=False,
+        description="Whether to sample the maximum number of splits at rollout from 0 to `rollout_max_ops`",
+    )
+    init_num_children: int | Callable = pydantic.Field(
+        default=3,
+        description="Maximum number of children per node",
+    )
+    new_child_thresh: int | Callable = pydantic.Field(
+        default=5,
+        description="Number of visits required for a new child",
+    )
+
+    # UCB1 parameter
+    explore_param: float = pydantic.Field(
+        default=1.5,
+        description="Exploration versus exploitation parameter",
+    )
+
+    # MCTS progress plotting
+    draw_search: bool = pydantic.Field(default=False, description="Plot MCTS progress")
+    color_by: str = pydantic.Field(
+        default="state", description="Draw progress by `state` or `mean_score`"
+    )
+    with_labels: bool = pydantic.Field(
+        default=True, description="Draw with node ID labels"
+    )
+    filename: str = pydantic.Field(
+        default="search.mp4", description="Where to save the progress video"
+    )
+    fps: int = pydantic.Field(default=2, description="Frames per second for video")
 
 
 class OutputConfig(pydantic.BaseModel):
