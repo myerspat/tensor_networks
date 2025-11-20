@@ -112,7 +112,7 @@ if __name__ == "__main__":
     # Number of trees to run
     for i in range(num_trees):
         # Get random tree structure
-        benchmark = get_ith_random_tree(80)
+        benchmark = get_ith_random_tree(i)
 
         # Get network from benchmark
         net = benchmark.to_network()
