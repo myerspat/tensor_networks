@@ -154,14 +154,14 @@ class MCTSearch(PartitionSearch):
                 )
 
                 # Assign the score to the child
-                best_cost, cost = self.get_cost(state, best_cost)
+                best_size, size = self.get_cost(state, best_size)
 
                 if self.config.engine.verbose:
                     print("Backpropagate")
 
                 # Back propagate
-                if cost != BAD_SCORE:
-                    child.backpropagate(self.config, cost)
+                if size != BAD_SCORE:
+                    child.backpropagate(self.config, size)
                 else:
                     # Rank optimization failed for some reason, back propogate
                     # a 'neutral' score but keep the node, also make it more
@@ -175,7 +175,7 @@ class MCTSearch(PartitionSearch):
 
                 # Print child and score
                 if self.config.engine.verbose:
-                    print("New Child: Score = {}\n{}".format(cost, child))
+                    print("New Child: Score = {}\n{}".format(size, child))
 
                 # Append child to node
                 node.append(child)

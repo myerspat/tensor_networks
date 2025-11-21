@@ -12,6 +12,39 @@ from pytens.search.configuration import SearchConfig
 from pytens.search.state import SearchState
 
 
+def bucb1_score(prior_mean, prior_variance):
+    updated_mean = 0
+    updated_variance = 1
+    return
+
+
+def bucb2_score(prior_mean, prior_variance):
+    updated_mean = 0
+    updated_variance = 1
+    return
+
+
+def welford_update(n_visits, mean, M2, new_value):
+    """Uses welford's algorithm to update the mean and variance as new samples are taken (online algorithm).
+
+    Args:
+        n_visits (int): Number of visits EXCLUDING this one (we're about to increment it)
+        mean (float): Mean score at the node before this sample
+        M2 (float): Sum of squared distance from the mean before this sample
+        new_value (float): 1/size of the tensor network we just rolled out to and need to add to the statistics
+
+    Returns:
+        tuple: (n_visits, updated mean, updated variance, updated M2)
+    """
+    # increment the visits counter
+    n_visits += 1
+    delta = new_value - mean
+    mean += delta / n_visits
+    M2 += delta * delta
+    # return new mean and variance, plus M2 for tracking
+    return n_visits, mean, M2 / n_visits, M2
+
+
 class NodeState(Enum):
     # This node still has unborn children
     ACTIVE = 0
@@ -54,7 +87,13 @@ class Node:
 
         self.num_visits = 0
         self.num_visits_since_last_child = -1
-        self.mean_score = 0
+        self.mean = (
+            0  # this mean will be updated differently depending on the search policy
+        )
+        # variance is only necessary for bayesian search policies
+        self.variance = 0
+        # accumulator for the squared distance from the mean size
+        self.M2 = 0
 
     # =================================================================================
     # Node methods
@@ -111,12 +150,14 @@ class Node:
         best_child = None
         for child in self.children:
             if child.state != NodeState.NO_BRANCH_POSSIBLE:
+                # this is the UCB1 or sampled score!
                 score = child.score_func(config, total_visits)
 
                 if config.engine.verbose:
                     print("--   Child {}, Score = {}".format(child.id, score))
 
-                if score < best_score:
+                # compare MCTS path scores
+                if score > best_score:
                     best_score = score
                     best_child = child
 
@@ -132,7 +173,7 @@ class Node:
 
         return self, depth
 
-    def backpropagate(self, config: SearchConfig, score):
+    def backpropagate(self, config: SearchConfig, size):
         """
         Backpropagate score of a child.
 
@@ -140,23 +181,24 @@ class Node:
         ----------
         config: pytens.search.configuration.SearchConfig
             Search configuration.
-        score: float
+        size: float
             The number of elements in the tensor network.
         """
-        self.num_visits += 1
+        self.num_visits, self.mean, self.mean_variance, self.M2 = welford_update(
+            n_visits=self.num_visits, mean=self.mean, M2=self.M2, new_value=(1 / size)
+        )
         self.num_visits_since_last_child += 1
-        self.mean_score += (score - self.mean_score) / self.num_visits
 
         if config.engine.verbose:
             print(
                 "-- Node {}: Mean Score = {}, # of Visits = {}".format(
-                    self.id, self.mean_score, self.num_visits
+                    self.id, self.mean, self.num_visits
                 )
             )
 
         # Continue back up the tree
         if self.parent is not None:
-            self.parent.backpropagate(config, score)
+            self.parent.backpropagate(config, size)
 
     def get_next_action(self, config: SearchConfig, depth):
         """
@@ -240,8 +282,22 @@ class Node:
             The score of the node.
         """
         if config.engine.policy == "UCB1":
-            return self.mean_score + config.engine.explore_param * np.sqrt(
+            return self.mean + config.engine.explore_param * np.sqrt(
                 np.log(total_visits) / self.num_visits
+            )
+
+        if config.engine.policy == "BUCB1":
+            # sample a "mean value" of inverse size from a normal distribution centered around the sample mean with variance modeled as inverse sqrt of visits to the node
+            sampled_mean = np.random.normal(self.mean, self.variance)
+            return sampled_mean + config.engine.explore_param * np.sqrt(
+                np.log(total_visits) / self.num_visits
+            )
+
+        if config.engine.policy == "BUCB2":
+            # sample a "mean value" of inverse size from a normal distribution centered around the sample mean with sample variance
+            sampled_mean = np.random.normal(self.mean, self.variance)
+            return sampled_mean + config.engine.explore_param * np.sqrt(
+                self.variance * np.log(total_visits)
             )
 
         raise RuntimeError("Only the UCB1 policy is supported")
@@ -267,10 +323,10 @@ class Node:
             self.state2str[self.state],
             self.parent.id if self.parent != None else "None",
             self.num_visits,
-        ) + "\n\tnum_visits_since_last_child={},\n\tnum_potential_children={},\n\tmean_score={}\n)".format(
+        ) + "\n\tnum_visits_since_last_child={},\n\tnum_potential_children={},\n\tmean={}\n)".format(
             self.num_visits_since_last_child,
             self.num_potential_children,
-            self.mean_score,
+            self.mean,
         )
 
     # =================================================================================
@@ -321,9 +377,7 @@ class Node:
         """
         Add the node to the networkx graph.
         """
-        G.add_node(
-            id(self), label=str(self.id), state=self.state, mean_score=self.mean_score
-        )
+        G.add_node(id(self), label=str(self.id), state=self.state, mean=self.mean)
 
         for child in self.children:
             G.add_edge(id(self), id(child))
@@ -344,5 +398,6 @@ class Node:
             parent=None,
         )
         root.score = root.search_state.network.cost()
-        root.mean_score = root.score
+        # added this because we're keeping track of inverse size so we can maximize
+        root.mean = 1 / root.score
         return root
