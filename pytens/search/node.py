@@ -300,6 +300,10 @@ class Node:
                 self.variance * np.log(total_visits)
             )
 
+        if config.engine.policy == "NormalSampling":
+            # sample a random of inverse size from a normal distribution centered around the sample mean with sample variance
+            return np.random.normal(self.mean, self.variance)
+
         raise RuntimeError("Only the UCB1 policy is supported")
 
     def append(self, child):
