@@ -112,8 +112,10 @@ if __name__ == "__main__":
         "Time": np.zeros(num_trees),
         "Count": np.zeros(num_trees),
     }
-    pickle.dump(partition_data, f"partition_data_{config.engine.policy}.pkl")
-    pickle.dump(mcts_data, f"mcts_data_{config.engine.policy}.pkl")
+    with open(f"partition_data_{config.engine.policy}.pkl", "wb") as f1:
+        pickle.dump(partition_data, f1)
+    with open(f"mcts_data_{config.engine.policy}.pkl", "wb") as f2:
+        pickle.dump(mcts_data, f2)
 
     # Number of trees to run
     for i in range(num_trees):

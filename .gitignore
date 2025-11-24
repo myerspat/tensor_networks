@@ -180,3 +180,4 @@ testing.py
 runs/
 models/
 *.xlsx
+*.pkl
