@@ -181,3 +181,4 @@ runs/
 models/
 *.xlsx
 *.pkl
+*.png

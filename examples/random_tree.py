@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from benchmark import random_tree
 import pickle
+import sys
 
 from pytens import Index, TensorNetwork
 from pytens.search.configuration import SearchConfig
@@ -67,7 +68,7 @@ if __name__ == "__main__":
     # np.random.seed(42)
 
     # Parameters
-    num_trees = 125  # Number of random trees to generate and test
+    num_trees = 1  # Number of random trees to generate and test
     num_samples = 200  # Number of samples for MCTS
 
     # Create configuration, use the same for both partition and MCTS
@@ -84,7 +85,12 @@ if __name__ == "__main__":
     config.rank_search.k = 1
 
     # MCTS specific config params
-    config.engine.policy = "UCB1"
+    if len(sys.argv) < 2:
+        print("Usage: python script.py <policy>")
+        print("Available policies: UCB1, BUCB1, BUCB2, NormalSampling")
+        sys.exit(1)
+
+    config.engine.policy = sys.argv[1]
     # config.engine.policy = "BUCB1"
     # config.engine.policy = "BUCB2"
     # config.engine.policy = "NormalSampling"
@@ -112,9 +118,9 @@ if __name__ == "__main__":
         "Time": np.zeros(num_trees),
         "Count": np.zeros(num_trees),
     }
-    with open(f"partition_data_{config.engine.policy}.pkl", "wb") as f1:
+    with open(f"data/partition_{config.engine.policy}.pkl", "wb") as f1:
         pickle.dump(partition_data, f1)
-    with open(f"mcts_data_{config.engine.policy}.pkl", "wb") as f2:
+    with open(f"data/mcts_{config.engine.policy}.pkl", "wb") as f2:
         pickle.dump(mcts_data, f2)
 
     # Number of trees to run
@@ -165,7 +171,7 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.axis("equal")
     plt.legend()
-    plt.savefig("cr.png", dpi=300)
+    plt.savefig(f"figs/cr_{config.engine.policy}.png", dpi=300)
 
     # Plot run time
     plt.clf()
@@ -178,4 +184,4 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.axis("equal")
     plt.legend()
-    plt.savefig("time.png", dpi=300)
+    plt.savefig(f"figs/time_{config.engine.policy}.png", dpi=300)
