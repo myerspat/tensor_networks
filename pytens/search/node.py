@@ -12,18 +12,6 @@ from pytens.search.configuration import SearchConfig
 from pytens.search.state import SearchState
 
 
-def bucb1_score(prior_mean, prior_variance):
-    updated_mean = 0
-    updated_variance = 1
-    return
-
-
-def bucb2_score(prior_mean, prior_variance):
-    updated_mean = 0
-    updated_variance = 1
-    return
-
-
 def welford_update(n_visits, mean, M2, new_value):
     """Uses welford's algorithm to update the mean and variance as new samples are taken (online algorithm).
 
@@ -157,7 +145,7 @@ class Node:
                     print("--   Child {}, Score = {}".format(child.id, score))
 
                 # compare MCTS path scores
-                if score > best_score:
+                if score < best_score:
                     best_score = score
                     best_child = child
 
@@ -173,7 +161,7 @@ class Node:
 
         return self, depth
 
-    def backpropagate(self, config: SearchConfig, size):
+    def backpropagate(self, config: SearchConfig, inv_size):
         """
         Backpropagate score of a child.
 
@@ -181,11 +169,11 @@ class Node:
         ----------
         config: pytens.search.configuration.SearchConfig
             Search configuration.
-        size: float
-            The number of elements in the tensor network.
+        inv_size: float
+            The inverse of the number of elements in the tensor network.
         """
         self.num_visits, self.mean, self.mean_variance, self.M2 = welford_update(
-            n_visits=self.num_visits, mean=self.mean, M2=self.M2, new_value=(1 / size)
+            n_visits=self.num_visits, mean=self.mean, M2=self.M2, new_value=inv_size
         )
         self.num_visits_since_last_child += 1
 
@@ -198,7 +186,7 @@ class Node:
 
         # Continue back up the tree
         if self.parent is not None:
-            self.parent.backpropagate(config, size)
+            self.parent.backpropagate(config, inv_size)
 
     def get_next_action(self, config: SearchConfig, depth):
         """
@@ -402,6 +390,5 @@ class Node:
             parent=None,
         )
         root.score = root.search_state.network.cost()
-        # added this because we're keeping track of inverse size so we can maximize
-        root.mean = 1 / root.score
+        root.mean = root.score
         return root

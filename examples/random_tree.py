@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from benchmark import random_tree
+import pickle
 
 from pytens import Index, TensorNetwork
 from pytens.search.configuration import SearchConfig
@@ -83,12 +84,15 @@ if __name__ == "__main__":
     config.rank_search.k = 1
 
     # MCTS specific config params
-    config.engine.policy = "BUCB1"
+    config.engine.policy = "UCB1"
+    # config.engine.policy = "BUCB1"
+    # config.engine.policy = "BUCB2"
+    # config.engine.policy = "NormalSampling"
     config.engine.rollout_max_ops = 0
     config.engine.rollout_rand_max_ops = False
     config.engine.init_num_children = 3
     config.engine.new_child_thresh = 5
-    config.engine.explore_param = 1.5
+    config.engine.explore_param = -1.5
 
     # # Draw MCTS progress
     # config.engine.draw_search = True
@@ -108,6 +112,8 @@ if __name__ == "__main__":
         "Time": np.zeros(num_trees),
         "Count": np.zeros(num_trees),
     }
+    pickle.dump(partition_data, f"partition_data_{config.engine.policy}.pkl")
+    pickle.dump(mcts_data, f"mcts_data_{config.engine.policy}.pkl")
 
     # Number of trees to run
     for i in range(num_trees):

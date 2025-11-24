@@ -91,8 +91,8 @@ class MCTSearch(PartitionSearch):
 
         # Run MCTS
         self.stats["tic"] = time.time()
-        # root.mean is 1/size
-        best_cost = [1 / self.root.mean]
+        # root.mean is size
+        best_cost = [self.root.mean]
 
         if self.config.engine.verbose:
             print("Running MCTS")
@@ -155,14 +155,14 @@ class MCTSearch(PartitionSearch):
                 )
 
                 # Assign the score to the child
-                best_cost, size = self.get_cost(state, best_cost)
+                best_cost, inv_size = self.get_cost(state, best_cost)
 
                 if self.config.engine.verbose:
                     print("Backpropagate")
 
                 # Back propagate
-                if size != BAD_SCORE:
-                    child.backpropagate(self.config, size)
+                if inv_size != BAD_SCORE:
+                    child.backpropagate(self.config, inv_size)
                 else:
                     # Rank optimization failed for some reason, back propogate
                     # a 'neutral' score but keep the node, also make it more
@@ -176,7 +176,7 @@ class MCTSearch(PartitionSearch):
 
                 # Print child and score
                 if self.config.engine.verbose:
-                    print("New Child: Score = {}\n{}".format(size, child))
+                    print("New Child: Score = {}\n{}".format(inv_size, child))
 
                 # Append child to node
                 node.append(child)
@@ -306,7 +306,6 @@ class MCTSearch(PartitionSearch):
                     best_cost = best_cost[: self.config.rank_search.k]
             self.costs[tuple(state.past_actions)] = cost
             self.ranks[tuple(state.past_actions)] = rank
-
             return best_cost, cost
 
         else:
