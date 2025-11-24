@@ -83,7 +83,7 @@ if __name__ == "__main__":
     config.rank_search.k = 1
 
     # MCTS specific config params
-    config.engine.policy = "UCB1"
+    config.engine.policy = "BUCB1"
     config.engine.rollout_max_ops = 0
     config.engine.rollout_rand_max_ops = False
     config.engine.init_num_children = 3

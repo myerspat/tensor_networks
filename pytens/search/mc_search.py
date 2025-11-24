@@ -91,7 +91,8 @@ class MCTSearch(PartitionSearch):
 
         # Run MCTS
         self.stats["tic"] = time.time()
-        best_cost = [self.root.mean_score]
+        # root.mean is 1/size
+        best_cost = [1 / self.root.mean]
 
         if self.config.engine.verbose:
             print("Running MCTS")
@@ -154,7 +155,7 @@ class MCTSearch(PartitionSearch):
                 )
 
                 # Assign the score to the child
-                best_size, size = self.get_cost(state, best_size)
+                best_cost, size = self.get_cost(state, best_cost)
 
                 if self.config.engine.verbose:
                     print("Backpropagate")
@@ -350,7 +351,7 @@ class MCTSearch(PartitionSearch):
 
     def draw(
         self,
-        color_by: Literal["state", "mean_score"] = "state",
+        color_by: Literal["state", "mean"] = "state",
         with_labels: bool = True,
         ax=None,
     ):
@@ -359,7 +360,7 @@ class MCTSearch(PartitionSearch):
 
         Parameters
         ----------
-        color_by: "state" or "mean_score"
+        color_by: "state" or "mean"
             What to color the nodes by.
         with_labels: bool
             Whether to include the node ID labels.
@@ -392,7 +393,7 @@ class MCTSearch(PartitionSearch):
         node_colors = (
             [STATE_COLORS[G.nodes[n]["state"]] for n in G.nodes]
             if color_by == "state"
-            else self.root.score / np.array([G.nodes[n]["mean_score"] for n in G.nodes])
+            else self.root.score / np.array([G.nodes[n]["mean"] for n in G.nodes])
         )
         node_labels = {n: G.nodes[n]["label"] for n in G.nodes}
 
@@ -412,7 +413,7 @@ class MCTSearch(PartitionSearch):
             arrows=False,
             ax=ax,
         )
-        if color_by == "mean_score":
+        if color_by == "mean":
             if self.cbar == None:
                 self.cbar = fig.colorbar(
                     plt.cm.ScalarMappable(
