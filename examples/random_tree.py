@@ -66,9 +66,9 @@ if __name__ == "__main__":
     # # Set random states
     # random.seed(42)
     # np.random.seed(42)
-
+    trial = sys.argv[2]
     # Parameters
-    num_trees = 1  # Number of random trees to generate and test
+    num_trees = 10  # Number of random trees to generate and test
     num_samples = 200  # Number of samples for MCTS
 
     # Create configuration, use the same for both partition and MCTS
@@ -118,10 +118,6 @@ if __name__ == "__main__":
         "Time": np.zeros(num_trees),
         "Count": np.zeros(num_trees),
     }
-    with open(f"data/partition_{config.engine.policy}.pkl", "wb") as f1:
-        pickle.dump(partition_data, f1)
-    with open(f"data/mcts_{config.engine.policy}.pkl", "wb") as f2:
-        pickle.dump(mcts_data, f2)
 
     # Number of trees to run
     for i in range(num_trees):
@@ -154,34 +150,10 @@ if __name__ == "__main__":
         mcts_data["Time"][i] = mcts_stats["time"]
         mcts_data["Count"][i] = mcts_stats["count"]
 
-    # Plot compression ratio
-    plt.clf()
-    min_val = min(
-        min(mcts_data["Compression Ratio"]), min(partition_data["Compression Ratio"])
-    )
-    max_val = max(
-        max(mcts_data["Compression Ratio"]), max(partition_data["Compression Ratio"])
-    )
-    plt.plot([min_val, max_val], [min_val, max_val], "k--", label="$y = x$")
-    plt.scatter(partition_data["Compression Ratio"], mcts_data["Compression Ratio"])
-    plt.xlabel("Partition Search Compression Ratio")
-    plt.ylabel("MCT Search Compression Ratio")
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.grid(True)
-    plt.axis("equal")
-    plt.legend()
-    plt.savefig(f"figs/cr_{config.engine.policy}.png", dpi=300)
+    # save data for easier plotting later
+    with open(f"data/partition_{config.engine.policy}_{trial}.pkl", "wb") as f1:
+        pickle.dump(partition_data, f1)
+    with open(f"data/mcts_{config.engine.policy}_{trial}.pkl", "wb") as f2:
+        pickle.dump(mcts_data, f2)
 
-    # Plot run time
-    plt.clf()
-    min_val = min(min(mcts_data["Time"]), min(partition_data["Time"]))
-    max_val = max(max(mcts_data["Time"]), max(partition_data["Time"]))
-    plt.plot([min_val, max_val], [min_val, max_val], "k--", label="$y = x$")
-    plt.scatter(partition_data["Time"], mcts_data["Time"])
-    plt.xlabel("Partition Search Time (s)")
-    plt.ylabel("MCT Search Time (s)")
-    plt.grid(True)
-    plt.axis("equal")
-    plt.legend()
-    plt.savefig(f"figs/time_{config.engine.policy}.png", dpi=300)
+
