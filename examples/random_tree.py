@@ -68,7 +68,7 @@ if __name__ == "__main__":
     # np.random.seed(42)
     trial = sys.argv[2]
     # Parameters
-    num_trees = 25  # Number of random trees to generate and test
+    num_trees = 100  # Number of random trees to generate and test
     num_samples = 200  # Number of samples for MCTS
 
     # Create configuration, use the same for both partition and MCTS

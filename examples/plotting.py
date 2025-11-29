@@ -116,7 +116,6 @@ if __name__ == "__main__":
 
     for p in policies:
         policy_df = df.loc[df['policies']==p].copy()
-        breakpoint()
         sns.lineplot(
                      policy_df, 
                      x='tree', 
