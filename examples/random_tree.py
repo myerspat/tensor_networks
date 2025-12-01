@@ -155,5 +155,3 @@ if __name__ == "__main__":
         pickle.dump(partition_data, f1)
     with open(f"data/mcts_{config.engine.policy}_{trial}.pkl", "wb") as f2:
         pickle.dump(mcts_data, f2)
-
-
