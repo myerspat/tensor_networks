@@ -7,7 +7,7 @@ import os
 
 
 if __name__ == "__main__":
-    trees = 100
+    trees = 10
     try:
         os.mkdir(f"figs_{trees}trees")
     except FileExistsError:
@@ -34,7 +34,9 @@ if __name__ == "__main__":
     for method in methods:
         for policy in policies:
             for trial in trials:
-                with open(f"data_100trees/{method}_{policy}_{trial}.pkl", "rb") as f:
+                with open(
+                    f"data_{trees}trees/{method}_{policy}_{trial}.pkl", "rb"
+                ) as f:
                     results = pickle.load(f)
                     # print(f'RESULTS: {results}')
                 cr = results["Compression Ratio"]
@@ -64,9 +66,11 @@ if __name__ == "__main__":
             #  style='method'
         )
         ax1.set(xlabel="Random Tree []", ylabel="Time [s]")
+        ax1.grid(True)
         plt.savefig(f"figs_{trees}trees/time_{p}.png", dpi=300)
         plt.clf()
         ax2 = sns.lineplot(policy_df, x="tree", y="comp_ratio", hue="method")
+        ax2.grid(True)
         ax2.set(xlabel="Random Tree []", ylabel="Compression Ratio []")
         plt.savefig(f"figs_{trees}trees/CR_{p}.png", dpi=100)
 

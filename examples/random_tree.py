@@ -3,6 +3,8 @@ import numpy as np
 from benchmark import random_tree
 import pickle
 import sys
+import random
+import os
 
 from pytens import Index, TensorNetwork
 from pytens.search.configuration import SearchConfig
@@ -64,12 +66,15 @@ def get_ith_random_tree(i, cutoffs=[25, 50, 75, 100]):
 
 if __name__ == "__main__":
     # # Set random states
-    # random.seed(42)
-    # np.random.seed(42)
+    # If /trees is empty, run with run_type = 'set_trees' first!
+    run_type = "normal"
+    if run_type == "set_trees":
+        random.seed(42)
+        np.random.seed(42)
     trial = sys.argv[2]
     # Parameters
-    num_trees = 100  # Number of random trees to generate and test
-    num_samples = 200  # Number of samples for MCTS
+    num_trees = 125  # Number of random trees to generate and test (default 125)
+    num_samples = 200  # Number of samples for MCTS (default 200)
 
     # Create configuration, use the same for both partition and MCTS
     # as the MCTS specific parameters are seperate
@@ -121,17 +126,24 @@ if __name__ == "__main__":
 
     # Number of trees to run
     for i in range(num_trees):
-        # Get random tree structure
-        benchmark = get_ith_random_tree(i)
+        if run_type == "set_trees":
+            # Get random tree structure
+            benchmark = get_ith_random_tree(i)
 
-        # Get network from benchmark
-        net = benchmark.to_network()
-        print(f"Random Tree {i}\n{net}")
+            # Get network from benchmark
+            net = benchmark.to_network()
+            print(f"Random Tree {i}\n{net}")
 
-        # Contract to a single tensor
-        core = net.contract()
-        net = TensorNetwork()
-        net.add_node("G0", core)
+            # Contract to a single tensor
+            core = net.contract()
+            net = TensorNetwork()
+            net.add_node("G0", core)
+            with open(f"trees/tree_{i}.pkl", "wb") as f:
+                pickle.dump(net.to_dict(), f)
+            continue
+        else:
+            with open(f"trees/tree_{i}.pkl", "rb") as f:
+                net = TensorNetwork.from_dict(pickle.load(f))
 
         # Create search engine
         engine = SearchEngine(config)
@@ -151,7 +163,21 @@ if __name__ == "__main__":
         mcts_data["Count"][i] = mcts_stats["count"]
 
     # save data for easier plotting later
-    with open(f"data/partition_{config.engine.policy}_{trial}.pkl", "wb") as f1:
-        pickle.dump(partition_data, f1)
-    with open(f"data/mcts_{config.engine.policy}_{trial}.pkl", "wb") as f2:
-        pickle.dump(mcts_data, f2)
+    if run_type != "set_trees":
+        try:
+            os.mkdir(f"figs_{num_trees}trees")
+        except FileExistsError:
+            print(f"Figs directory already exists.")
+        try:
+            os.mkdir(f"data_{num_trees}trees")
+        except FileExistsError:
+            print(f"Figs directory already exists.")
+
+        with open(
+            f"data_{num_trees}trees/partition_{config.engine.policy}_{trial}.pkl", "wb"
+        ) as f1:
+            pickle.dump(partition_data, f1)
+        with open(
+            f"data_{num_trees}trees/mcts_{config.engine.policy}_{trial}.pkl", "wb"
+        ) as f2:
+            pickle.dump(mcts_data, f2)
