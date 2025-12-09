@@ -270,21 +270,21 @@ class Node:
             The score of the node.
         """
         if config.engine.policy == "UCB1":
-            return self.mean + config.engine.explore_param * np.sqrt(
+            return self.mean - config.engine.explore_param * np.sqrt(
                 np.log(total_visits) / self.num_visits
             )
 
         if config.engine.policy == "BUCB1":
             # sample a "mean value" of inverse size from a normal distribution centered around the sample mean with variance modeled as inverse sqrt of visits to the node
             sampled_mean = np.random.normal(self.mean, self.variance)
-            return sampled_mean + config.engine.explore_param * np.sqrt(
+            return sampled_mean - config.engine.explore_param * np.sqrt(
                 np.log(total_visits) / self.num_visits
             )
 
         if config.engine.policy == "BUCB2":
             # sample a "mean value" of inverse size from a normal distribution centered around the sample mean with sample variance
             sampled_mean = np.random.normal(self.mean, self.variance)
-            return sampled_mean + config.engine.explore_param * np.sqrt(
+            return sampled_mean - config.engine.explore_param * np.sqrt(
                 self.variance * np.log(total_visits)
             )
 

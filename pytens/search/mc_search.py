@@ -93,6 +93,7 @@ class MCTSearch(PartitionSearch):
         self.stats["tic"] = time.time()
         # root.mean is size
         best_cost = [self.root.mean]
+        best_idx = [0]
 
         if self.config.engine.verbose:
             print("Running MCTS")
@@ -155,7 +156,9 @@ class MCTSearch(PartitionSearch):
                 )
 
                 # Assign the score to the child
-                best_cost, inv_size = self.get_cost(state, best_cost)
+                best_cost, best_idx, inv_size = self.get_cost(
+                    state, self.stats["count"], best_cost, best_idx
+                )
 
                 if self.config.engine.verbose:
                     print("Backpropagate")
@@ -237,6 +240,7 @@ class MCTSearch(PartitionSearch):
             np.linalg.norm(best_tensor.value - net.contract().value)
             / np.linalg.norm(net.contract().value)
         )
+        self.stats["best_tn_idxs"] = best_idx
 
         if self.config.engine.verbose:
             print(
@@ -293,7 +297,9 @@ class MCTSearch(PartitionSearch):
     def get_cost(
         self,
         state: SearchState,
+        idx: int,
         best_cost: List[int],
+        best_idx: List[int],
     ) -> Tuple[List[int], int]:
         """Call a constraint solver to estimate the cost of a given network"""
         if self.config.rank_search.fit_mode == "topk":
@@ -301,12 +307,19 @@ class MCTSearch(PartitionSearch):
             rank, cost = self.constraint_engine.get_cost(state, BAD_SCORE)
             if cost != BAD_SCORE:
                 best_cost.append(cost)
-                best_cost = sorted(best_cost)
+                best_idx.append(idx)
+
+                indices = sorted(range(len(best_cost)), key=lambda i: best_cost[i])
+                best_cost = [best_cost[i] for i in indices]
+                best_idx = [best_idx[i] for i in indices]
+
                 if len(best_cost) > self.config.rank_search.k:
                     best_cost = best_cost[: self.config.rank_search.k]
+                    best_idx = best_idx[: self.config.rank_search.k]
+
             self.costs[tuple(state.past_actions)] = cost
             self.ranks[tuple(state.past_actions)] = rank
-            return best_cost, cost
+            return best_cost, best_idx, cost
 
         else:
             raise NotImplemented("Only `topk` is supported")
