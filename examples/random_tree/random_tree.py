@@ -92,11 +92,13 @@ if __name__ == "__main__":
     # Save data
     partition_data = {
         "Compression Ratio": np.zeros(num_trees),
+        "Preprocessing Time": np.zeros(num_trees),
         "Time": np.zeros(num_trees),
         "Count": np.zeros(num_trees),
     }
     mcts_data = {
         "Compression Ratio": np.zeros((num_trees, num_repeats)),
+        "Preprocessing Time": np.zeros((num_trees, num_repeats)),
         "Time": np.zeros((num_trees, num_repeats)),
         "Count": np.zeros((num_trees, num_repeats)),
         "TN Indices": np.zeros((num_trees, num_repeats)),
@@ -115,6 +117,7 @@ if __name__ == "__main__":
         print("Running Partition Search", end="")
         partition_stats = engine.partition_search(net)
         partition_data["Compression Ratio"][i] = partition_stats["cr_core"]
+        partition_data["Preprocessing Time"][i] = partition_stats["preprocess"]
         partition_data["Time"][i] = partition_stats["time"]
         partition_data["Count"][i] = partition_stats["count"]
         print(f", Run Time = {partition_data['Time'][i]} s")
@@ -124,6 +127,7 @@ if __name__ == "__main__":
             print(f"({j}) Running MCTS", end="")
             mcts_stats = engine.mcts(net, num_samples)
             mcts_data["Compression Ratio"][i, j] = mcts_stats["cr_core"]
+            mcts_data["Preprocessing Time"][i, j] = mcts_stats["preprocess"]
             mcts_data["Time"][i, j] = mcts_stats["time"]
             mcts_data["Count"][i, j] = mcts_stats["count"]
             mcts_data["TN Indices"][i, j] = mcts_stats["best_tn_idxs"][0]

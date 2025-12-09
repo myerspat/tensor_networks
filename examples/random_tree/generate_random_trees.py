@@ -17,7 +17,7 @@ seed: int, default=None
 """
 
 
-def get_ith_random_tree(i, cutoffs=[20, 40, 60, 80]):
+def get_ith_random_tree(i, cutoffs=[20, 55, 90]):
     if i < cutoffs[0]:
         return random_tree(
             f"random_test_{i}",
@@ -46,20 +46,6 @@ def get_ith_random_tree(i, cutoffs=[20, 40, 60, 80]):
                 Index("I2", 20),
                 Index("I3", 22),
                 Index("I4", 14),
-            ],
-        )
-    elif i < cutoffs[3]:
-        return random_tree(
-            f"random_test_{i}",
-            5,
-            [
-                Index("I0", 16),
-                Index("I1", 14),
-                Index("I2", 10),
-                Index("I3", 16),
-                Index("I4", 20),
-                Index("I5", 12),
-                Index("I6", 8),
             ],
         )
     else:
