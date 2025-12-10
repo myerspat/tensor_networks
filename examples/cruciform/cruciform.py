@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     # Run hyperparameter tuning below
     # Keep n_trials low for debugging, for real tuning make 100-200
-    n_trials = 2
+    n_trials = 100
     study = optuna.create_study(
         direction="maximize",
         sampler=optuna.samplers.TPESampler(seed=42),

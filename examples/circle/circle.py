@@ -60,10 +60,10 @@ def objective(trial):
         "policy", ["UCB1", "BUCB1", "BUCB2", "NormalSampling"]
     )
     config.engine.init_num_children = trial.suggest_categorical(
-        "initial_children", [2, 3, 4, 5]
+        "initial_children", [1, 2, 3, 4, 5]
     )
     config.engine.new_child_thresh = trial.suggest_categorical(
-        "new_child_threshold", [5, 6, 7, 8]
+        "new_child_threshold", [3, 4, 5, 6, 7, 8]
     )
     config.engine.explore_param = trial.suggest_float("C", 0, 5, step=0.1)
 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
     # Run hyperparameter tuning below
     # Keep n_trials low for debugging, for real tuning make 100-200
-    n_trials = 2
+    n_trials = 100
     study = optuna.create_study(
         direction="maximize",
         sampler=optuna.samplers.TPESampler(seed=42),
@@ -127,4 +127,4 @@ if __name__ == "__main__":
     # write those params to an output file
     with open("circle_tuning.txt", "w") as f:
         f.write(f"Best Params: {best_trial.params} \n")
-        f.write(f"Best Values: {best_trial.values}")
+        f.write(f"Best Avg. Compression Ratio: {best_trial.values}")
