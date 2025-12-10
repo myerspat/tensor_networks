@@ -2,6 +2,7 @@ import os
 import pickle
 import random
 import warnings
+import optuna
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,8 +12,8 @@ from pytens.search.configuration import SearchConfig
 from pytens.search.search import SearchEngine
 
 # Number of samples for MCTS and how many times to repeat it
-num_samples_per_trial = 50
-num_repeats_per_trial = 5
+num_samples_per_trial = 25
+num_repeats_per_trial = 2
 
 
 def get_dataset():
@@ -62,13 +63,17 @@ def objective(trial):
     # Setup MCTS config
     config = get_base_config()
 
-    # Hyperparameters (fill the rest of these in)
+    # Hyperparameters
     config.engine.policy = trial.suggest_categorical(
         "policy", ["UCB1", "BUCB1", "BUCB2", "NormalSampling"]
     )
-    config.engine.init_num_children = 3
-    config.engine.new_child_thresh = 5
-    config.engine.explore_param = 1.5
+    config.engine.init_num_children = trial.suggest_categorical(
+        "initial_children", [1, 2, 3, 4, 5]
+    )
+    config.engine.new_child_thresh = trial.suggest_categorical(
+        "new_child_threshold", [3, 4, 5, 6, 7, 8]
+    )
+    config.engine.explore_param = trial.suggest_float("C", 0, 5, step=0.1)
 
     # Run MCTS num_repeats times and average the CR
     engine = SearchEngine(config)
@@ -113,3 +118,21 @@ if __name__ == "__main__":
     plt.savefig("figs/partition.png", dpi=300, transparent=True)
 
     # Run hyperparameter tuning below
+    # Keep n_trials low for debugging, for real tuning make 100-200
+    n_trials = 2
+    study = optuna.create_study(
+        direction="maximize",
+        sampler=optuna.samplers.TPESampler(seed=42),
+        pruner=optuna.pruners.MedianPruner(),
+    )
+    # optimize over the objective function for a number of trials
+    study.optimize(objective, n_trials=n_trials)
+
+    best_trial = study.best_trial
+    for key, val in best_trial.params.items():
+        print(f"{key}:{val}")
+
+    # write those params to an output file
+    with open("cruciform_tuning.txt", "w") as f:
+        f.write(f"Best Params: {best_trial.params} \n")
+        f.write(f"Best Avg. Compression Ratio: {best_trial.values}")

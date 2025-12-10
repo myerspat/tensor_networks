@@ -1,0 +1,2 @@
+Best Params: {'policy': 'BUCB1', 'initial_children': 1, 'new_child_threshold': 3, 'C': 0.8} 
+Best Values: [17.026361018628094]
