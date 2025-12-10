@@ -46,6 +46,7 @@ def get_ith_random_tree(i, cutoffs=[20, 55, 90]):
                 Index("I2", 20),
                 Index("I3", 22),
                 Index("I4", 14),
+                Index("I5", 12),
             ],
         )
     else:
@@ -54,10 +55,10 @@ def get_ith_random_tree(i, cutoffs=[20, 55, 90]):
             7,
             [
                 Index("I0", 16),
-                Index("I1", 14),
+                Index("I1", 12),
                 Index("I2", 10),
                 Index("I3", 16),
-                Index("I4", 20),
+                Index("I4", 14),
                 Index("I5", 12),
                 Index("I6", 8),
             ],
