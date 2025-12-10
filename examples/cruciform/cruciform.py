@@ -85,9 +85,55 @@ def objective(trial):
     return np.mean(cr)
 
 
+def run_mcts(params_file):
+    if params_file is None:
+        net = get_dataset()
+        # Setup MCTS config
+        config = get_base_config()
+        # Hyperparameters
+        config.engine.policy = "UCB1"
+        config.engine.init_num_children = 3
+        config.engine.new_child_thresh = 5
+        config.engine.explore_param = 1
+
+        # Run MCTS num_repeats times and average the CR
+        engine = SearchEngine(config)
+
+        cr = np.zeros(num_repeats_per_trial)
+        for i in range(num_repeats_per_trial):
+            cr[i] = engine.mcts(net, num_samples_per_trial)["cr_core"]
+
+        return np.mean(cr)
+    else:
+        with open(params_file, "r") as f:
+            params = eval(f.readlines()[0].replace("Best Params: ", ""))
+        net = get_dataset()
+        # Setup MCTS config
+        config = get_base_config()
+        # Hyperparameters
+        config.engine.policy = params["policy"]
+        config.engine.init_num_children = params["initial_children"]
+        config.engine.new_child_thresh = params["new_child_threshold"]
+        config.engine.explore_param = params["C"]
+
+        # Run MCTS num_repeats times and average the CR
+        engine = SearchEngine(config)
+
+        cr = np.zeros(num_repeats_per_trial)
+        for i in range(num_repeats_per_trial):
+            cr[i] = engine.mcts(net, num_samples_per_trial)["cr_core"]
+
+        return np.mean(cr)
+
+
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")
 
+    # choose run_type from "mcts", "partition", or "tuning"
+    run_type = "mcts"
+
+    if run_type.lower() not in ["mcts", "partition", "tuning"]:
+        raise ValueError("run_type must be one of: mcts, partition, or tuning")
     # # Set random state
     # seed = 42
     # random.seed(seed)
@@ -96,43 +142,55 @@ if __name__ == "__main__":
     net = get_dataset()
     print("Dataset: {}-dimensional of shape {}".format(len(net.shape()), net.shape()))
 
-    # Run partition for reference
-    print("Running Partition")
-    engine = SearchEngine(get_base_config())
-    stats = engine.partition_search(get_dataset())
-    print(
-        "CR = {}, Run Time = {} s, Preprocessing Time = {} s, Iteration Count = {}".format(
-            *[stats[s] for s in ["cr_core", "time", "preprocess", "count"]]
+    if run_type.lower() == "partition":
+        # Run partition for reference
+        print("Running Partition")
+        engine = SearchEngine(get_base_config())
+        stats = engine.partition_search(get_dataset())
+        print(
+            "CR = {}, Run Time = {} s, Preprocessing Time = {} s, Iteration Count = {}".format(
+                *[stats[s] for s in ["cr_core", "time", "preprocess", "count"]]
+            )
         )
-    )
 
-    # Save the TN
-    os.makedirs("networks", exist_ok=True)
-    os.makedirs("figs", exist_ok=True)
-    with open("networks/partition.pkl", "wb") as f:
-        pickle.dump(stats["best_network"].to_dict(), f)
+        # Save the TN
+        os.makedirs("networks", exist_ok=True)
+        os.makedirs("figs", exist_ok=True)
+        with open("networks/partition.pkl", "wb") as f:
+            pickle.dump(stats["best_network"].to_dict(), f)
 
-    # Plot the best TN
-    plt.clf()
-    stats["best_network"].draw()
-    plt.savefig("figs/partition.png", dpi=300, transparent=True)
+        # Plot the best TN
+        plt.clf()
+        stats["best_network"].draw()
+        plt.savefig("figs/partition.png", dpi=300, transparent=True)
 
-    # Run hyperparameter tuning below
-    # Keep n_trials low for debugging, for real tuning make 100-200
-    n_trials = 100
-    study = optuna.create_study(
-        direction="maximize",
-        sampler=optuna.samplers.TPESampler(seed=42),
-        pruner=optuna.pruners.MedianPruner(),
-    )
-    # optimize over the objective function for a number of trials
-    study.optimize(objective, n_trials=n_trials)
+    elif run_type.lower() == "tuning":
+        # Run hyperparameter tuning below
+        # Keep n_trials low for debugging, for real tuning make 100-200
+        n_trials = 100
+        study = optuna.create_study(
+            direction="maximize",
+            sampler=optuna.samplers.TPESampler(seed=42),
+            pruner=optuna.pruners.MedianPruner(),
+        )
+        # optimize over the objective function for a number of trials
+        study.optimize(objective, n_trials=n_trials)
 
-    best_trial = study.best_trial
-    for key, val in best_trial.params.items():
-        print(f"{key}:{val}")
+        best_trial = study.best_trial
+        for key, val in best_trial.params.items():
+            print(f"{key}:{val}")
 
-    # write those params to an output file
-    with open("cruciform_tuning.txt", "w") as f:
-        f.write(f"Best Params: {best_trial.params} \n")
-        f.write(f"Best Avg. Compression Ratio: {best_trial.values}")
+        # write those params to an output file
+        with open("cruciform_tuning.txt", "w") as f:
+            f.write(f"Best Params: {best_trial.params} \n")
+            f.write(f"Best Avg. Compression Ratio: {best_trial.values}")
+
+    elif run_type.lower() == "mcts":
+        tuning_done = os.path.exists("cruciform_tuning.txt")
+        if tuning_done:
+            run_mcts(params_file="cruciform_tuning.txt")
+        else:
+            print(
+                "Using generic parameters. Please run hyperparameter tuning first for optimal MCTS performance."
+            )
+            run_mcts(params_file=None)
