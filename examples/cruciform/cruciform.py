@@ -85,7 +85,7 @@ def objective(trial):
     return np.mean(cr)
 
 
-def run_mcts(params_file):
+def run_mcts(params_file, num_samples_per_trial=100):
     if params_file is None:
         net = get_dataset()
         # Setup MCTS config
@@ -96,14 +96,6 @@ def run_mcts(params_file):
         config.engine.new_child_thresh = 5
         config.engine.explore_param = 1
 
-        # Run MCTS num_repeats times and average the CR
-        engine = SearchEngine(config)
-
-        cr = np.zeros(num_repeats_per_trial)
-        for i in range(num_repeats_per_trial):
-            cr[i] = engine.mcts(net, num_samples_per_trial)["cr_core"]
-
-        return np.mean(cr)
     else:
         with open(params_file, "r") as f:
             params = eval(f.readlines()[0].replace("Best Params: ", ""))
@@ -116,21 +108,18 @@ def run_mcts(params_file):
         config.engine.new_child_thresh = params["new_child_threshold"]
         config.engine.explore_param = params["C"]
 
-        # Run MCTS num_repeats times and average the CR
-        engine = SearchEngine(config)
+    # Run MCTS once and return compression ratio
+    engine = SearchEngine(config)
+    cr = engine.mcts(net, num_samples_per_trial)["cr_core"]
 
-        cr = np.zeros(num_repeats_per_trial)
-        for i in range(num_repeats_per_trial):
-            cr[i] = engine.mcts(net, num_samples_per_trial)["cr_core"]
-
-        return np.mean(cr)
+    return cr
 
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")
 
     # choose run_type from "mcts", "partition", or "tuning"
-    run_type = "mcts"
+    run_type = "tuning"
 
     if run_type.lower() not in ["mcts", "partition", "tuning"]:
         raise ValueError("run_type must be one of: mcts, partition, or tuning")
@@ -188,7 +177,20 @@ if __name__ == "__main__":
     elif run_type.lower() == "mcts":
         tuning_done = os.path.exists("cruciform_tuning.txt")
         if tuning_done:
-            run_mcts(params_file="cruciform_tuning.txt")
+            n_iters = [25, 50, 100, 150, 175, 200]
+            crs = []
+            for n in n_iters:
+                crs.append(
+                    run_mcts(
+                        params_file="cruciform_tuning.txt", num_samples_per_trial=n
+                    )
+                )
+            fig, ax = plt.subplots()
+            ax.plot(n_iters, crs, marker="o")
+            ax.set_xlabel("Number of Iterations Through Monte Carlo Tree []")
+            ax.set_ylabel("Compression Ratio []")
+            ax.grid(True)
+            plt.savefig("figs/cr_vs_iterations_cruciform.png", dpi=300)
         else:
             print(
                 "Using generic parameters. Please run hyperparameter tuning first for optimal MCTS performance."
