@@ -111,7 +111,7 @@ def run_mcts(params_file, num_samples_per_trial=100):
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")
 
-    run_type = "mcts"
+    run_type = "tuning"
 
     if run_type.lower() not in ["mcts", "partition", "tuning"]:
         raise ValueError("run_type must be one of: mcts, partition, or tuning")
