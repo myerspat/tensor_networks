@@ -1,2 +1,2 @@
-Best Params: {'policy': 'NormalSampling', 'initial_children': 5, 'new_child_threshold': 8, 'C': 4.0} 
-Best Values: [20.23355880075631]
+Best Params: {'policy': 'BUCB1', 'initial_children': 3, 'new_child_threshold': 5, 'C': 147.33577113525075} 
+Best Avg. Compression Ratio: [17.238166588643026]

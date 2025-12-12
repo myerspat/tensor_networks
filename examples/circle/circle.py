@@ -6,7 +6,6 @@ import optuna
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 
 from pytens.algs import Index, Tensor, TensorNetwork
 from pytens.search.configuration import SearchConfig
@@ -14,7 +13,7 @@ from pytens.search.search import SearchEngine
 
 # Number of samples for MCTS and how many times to repeat it
 num_samples_per_trial = 25
-num_repeats_per_trial = 2  # keep this small but still do at least 2 trials to avoid super lucky or unlucky trials skewing results
+num_repeats_per_trial = 10  # keep this small but still do at least 2 trials to avoid super lucky or unlucky trials skewing results
 
 
 def get_dataset():
@@ -60,13 +59,9 @@ def objective(trial):
     config.engine.policy = trial.suggest_categorical(
         "policy", ["UCB1", "BUCB1", "BUCB2", "NormalSampling"]
     )
-    config.engine.init_num_children = trial.suggest_categorical(
-        "initial_children", [1, 2, 3, 4, 5]
-    )
-    config.engine.new_child_thresh = trial.suggest_categorical(
-        "new_child_threshold", [3, 4, 5, 6, 7, 8]
-    )
-    config.engine.explore_param = trial.suggest_float("C", 0, 5, step=0.1)
+    config.engine.init_num_children = trial.suggest_int("initial_children", 1, 5)
+    config.engine.new_child_thresh = trial.suggest_int("new_child_threshold", 3, 8)
+    config.engine.explore_param = trial.suggest_loguniform("C", 0.00001, 10000)
 
     # Run MCTS num_repeats times and average the CR
     engine = SearchEngine(config)
@@ -103,9 +98,18 @@ def run_mcts(params_file, num_samples_per_trial=100):
 
     # Run MCTS once and return compression ratio
     engine = SearchEngine(config)
-    cr = engine.mcts(net, num_samples_per_trial)["cr_core"]
 
-    return cr
+    cr = np.zeros(10)
+    best_net = None
+    best_cr = 0
+    for i in range(10):
+        stats = engine.mcts(net, num_samples_per_trial)
+        cr[i] = stats["cr_core"]
+
+        if cr[i] > best_cr:
+            best_net = stats["best_network"]
+
+    return np.mean(cr), np.std(cr), best_net
 
 
 if __name__ == "__main__":
@@ -170,15 +174,27 @@ if __name__ == "__main__":
         tuning_done = os.path.exists("circle_tuning.txt")
         if tuning_done:
             n_iters = [25, 50, 100, 150, 175, 200]
-            crs = []
-            for n in n_iters:
-                crs.append(
-                    run_mcts(params_file="circle_tuning.txt", num_samples_per_trial=n)
+            crs = np.zeros(len(n_iters))
+            stds = np.zeros(len(n_iters))
+
+            for i, n in enumerate(n_iters):
+                crs[i], stds[i], net = run_mcts(
+                    params_file="circle_tuning.txt", num_samples_per_trial=n
                 )
+
+                with open(f"networks/best_network_{n}.pkl", "wb") as f:
+                    pickle.dump(net.to_dict(), f)
+
+                # Plot the best network
+                plt.clf()
+                net.draw()
+                plt.savefig(f"figs/best_network_{n}.png", dpi=300, transparent=True)
+
+            plt.clf()
             fig, ax = plt.subplots()
             ax.plot(n_iters, crs, marker="o")
-            ax.set_xlabel("Number of Iterations Through Monte Carlo Tree []")
-            ax.set_ylabel("Compression Ratio []")
+            ax.set_xlabel("Number of MCTS Samples")
+            ax.set_ylabel("Compression Ratio")
             ax.grid(True)
             plt.savefig("figs/cr_vs_iterations_circle.png", dpi=300)
         else:
